@@ -11,14 +11,20 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @SpringBootTest
 @AutoConfigureWebTestClient
 class CustomerControllerTest {
     @Autowired
     WebTestClient webTestClient;
+
+    @Test
+    void testDeleteNotFound() {
+        webTestClient.delete()
+                .uri(CustomerController.CUSTOMER_PATH_ID, 999)
+                .exchange()
+                .expectStatus().isNotFound();
+    }
 
     @Test
     @Order(999)
@@ -31,6 +37,36 @@ class CustomerControllerTest {
     }
 
     @Test
+    void testPatchNotFound() {
+        webTestClient.patch()
+                .uri(CustomerController.CUSTOMER_PATH_ID, 999)
+                .body(Mono.just(getCustomerDto()), CustomerDTO.class)
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void testUpdateCustomerBadRequest() {
+        CustomerDTO customerDTO = getCustomerDto();
+        customerDTO.setCustomerName("");
+
+        webTestClient.put()
+                .uri(CustomerController.CUSTOMER_PATH_ID, 999)
+                .body(Mono.just(customerDTO), CustomerDTO.class)
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void testUpdateNotFound() {
+        webTestClient.put()
+                .uri(CustomerController.CUSTOMER_PATH_ID, 999)
+                .body(Mono.just(getCustomerDto()), CustomerDTO.class)
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
     @Order(3)
     void testUpdateCustomer() {
         webTestClient.put()
@@ -38,6 +74,19 @@ class CustomerControllerTest {
                 .body(Mono.just(getCustomerDto()), CustomerDTO.class)
                 .exchange()
                 .expectStatus().isNoContent();
+    }
+
+
+    @Test
+    void testCreateCustomerBadRequest() {
+        CustomerDTO customerDTO = getCustomerDto();
+        customerDTO.setCustomerName("");
+
+        webTestClient.post().uri(CustomerController.CUSTOMER_PATH)
+                .body(Mono.just(customerDTO), CustomerDTO.class)
+                .header("Content-Type", "application/json")
+                .exchange()
+                .expectStatus().isBadRequest();
     }
 
     @Test
@@ -49,6 +98,14 @@ class CustomerControllerTest {
                 .exchange()
                 .expectStatus().isCreated()
                 .expectHeader().location("http://localhost:8080/api/v2/customer/4");
+    }
+
+    @Test
+    void testGetByIdNotFound() {
+        webTestClient.get()
+                .uri(CustomerController.CUSTOMER_PATH_ID, 999)
+                .exchange()
+                .expectStatus().isNotFound();
     }
 
     @Test
